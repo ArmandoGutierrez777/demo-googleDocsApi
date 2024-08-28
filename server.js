@@ -121,17 +121,6 @@ app.post('/api/saveVersion', async (req, res) => {
     }
 });
 
-// Ruta para eliminar la copia temporal si no se guarda
-app.post('/api/discardChanges', async (req, res) => {
-    const { tempFileId } = req.body;
-
-    try {
-        await drive.files.delete({ fileId: tempFileId });
-        res.json({ message: 'Temporary copy deleted' });
-    } catch (error) {
-        res.status(500).json({ message: 'Error deleting temporary copy', error });
-    }
-});
 
 // Ruta para eliminar todas las copias temporales en Google Drive
 app.post('/api/cleanupTemporaryFiles', async (req, res) => {
