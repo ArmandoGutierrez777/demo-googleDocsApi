@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Version Control</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #f7f9fc;
+        }
+
+        #sidebar {
+            width: 25%;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            overflow-y: auto;
+        }
+
+        #sidebar h2 {
+            margin-top: 0;
+            color: #ecf0f1;
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        #right-sidebar {
+            width: 20%;
+            background-color: #ecf0f1;
+            padding: 15px;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+            display: none;
+            flex-direction: column;
+            align-items: flex-start;
+            overflow-y: auto;
+        }
+
+        #right-sidebar h2 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        #right-sidebar button {
+            width: 100%;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        #content {
+            flex-grow: 1;
+            display: none;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: flex-start;
+            height: 100%;
+            background-color: #ecf0f1;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            overflow: auto;
+            resize: none;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 80%;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .spinner {
+            border: 6px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 6px solid #3498db;
+            width: 60px;
+            height: 60px;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        /* Keyframes for animations */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slideDown {
+            0% { transform: translateY(-50px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-content p {
+            font-size: 1.1rem;
+            color: #333;
+            margin-top: 10px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id="sidebar" class="d-flex flex-column p-3 bg-dark text-white">
+        <h2>Document Tree</h2>
+        <div id="fileTree" class="w-100"></div>
+    </div>
+
+    <div id="right-sidebar" class="bg-light p-3">
+        <h2>Version History</h2>
+        <button class="btn btn-success" onclick="saveChanges()">Save Changes</button>
+        <button class="btn btn-danger" onclick="discardChanges()">Discard Changes</button>
+        <div id="versionList" class="mt-3"></div>
+    </div>
+
+    <div id="content" class="bg-white p-3">
+        <iframe id="document-viewer" src=""></iframe>
+    </div>
+
+    <!-- Modal with Spinner -->
+    <div id="loadingModal" class="modal">
+        <div class="modal-content">
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentTempFileId = null;
+        let documentId = null;
+
+        // Show the loading modal
+        function showLoadingModal() {
+            document.getElementById('loadingModal').style.display = 'flex';
+        }
+
+        // Hide the loading modal
+        function hideLoadingModal() {
+            document.getElementById('loadingModal').style.display = 'none';
+        }
+
+        // Hardcoded tree structure
+        const fileTree = [
+            {
+                id: 9, label: '1. Política de SASISOPA', icon: 'fa-folder', children: [
+                    { id: 12, label: 'PR-GEN-01 Política', icon: 'fa-file', children: [
+                        { id: 13, label: 'FT-GEN-01 Política de SASISOPA', icon: 'fa-file-word', fileId: '1obn6V-iw4RvK59JoL1d-JC2ONSQ_vQzD' },
+                    ]}
+                ]
+            },
+            {
+                id: 10, label: '2. PELIGROS Y ASPECTOS AMBIENTALES', icon: 'fa-folder', children: [
+                    { id: 14, label: 'PR-SEG-01 Identificación y evaluación de aspectos ambientales', icon: 'fa-file', fileId: 'test' }
+                ]
+            },
+            {
+                id: 11, label: '13. Protocolo de respuesta a emergencias', icon: 'fa-folder', children: []
+            }
+        ];
+
+        // Function to render tree nodes
+        function renderTree(nodes, parentElement) {
+            nodes.forEach(node => {
+                const nodeElement = document.createElement('div');
+                nodeElement.classList.add('tree-node', 'p-2', 'rounded');
+                nodeElement.innerHTML = `
+                    <span class="icon"><i class="fa ${node.icon}"></i></span>
+                    <span class="label ms-2">${node.label}</span>
+                `;
+                nodeElement.onclick = (e) => {
+                    e.stopPropagation();
+                    if (node.children && node.children.length > 0) {
+                        const childrenElement = nodeElement.querySelector('.tree-children');
+                        if (childrenElement) {
+                            childrenElement.remove();
+                        } else {
+                            const newChildrenElement = document.createElement('div');
+                            newChildrenElement.classList.add('tree-children', 'ms-4');
+                            renderTree(node.children, newChildrenElement);
+                            nodeElement.appendChild(newChildrenElement);
+                        }
+                    } else if (node.fileId) {
+                        handleDocumentChange(() => createAndLoadTempDocument(node.fileId));
+                    }
+                };
+                parentElement.appendChild(nodeElement);
+            });
+        }
+
+        // Render the initial tree structure
+        const fileTreeElement = document.getElementById('fileTree');
+        renderTree(fileTree, fileTreeElement);
+
+        // Handle document change and cleanup temporary files
+        function handleDocumentChange(callback) {
+            discardAllTemporaryFiles().then(() => {
+                currentTempFileId = null;
+                callback();
+            });
+        }
+
+        // Create a temporary copy and load it into the iframe
+        function createAndLoadTempDocument(fileId) {
+            if (currentTempFileId && documentId === fileId) {
+                // Si ya hay un archivo temporal activo, evitar crear uno nuevo
+                return;
+            }
+            discardAllTemporaryFiles();
+
+            // Show the loading modal
+            showLoadingModal();
+
+            fetch('/api/editDocument', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ documentId: fileId })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    currentTempFileId = data.tempFileId;
+                    documentId = fileId;
+                    document.getElementById('document-viewer').src = `https://docs.google.com/document/d/${data.tempFileId}/edit`;
+                    document.getElementById('content').style.display = 'flex';
+                    document.getElementById('right-sidebar').style.display = 'flex';
+                    loadVersionHistory();
+
+                    // Hide the loading modal
+                    hideLoadingModal();
+                })
+                .catch(error => {
+                    // In case of error, hide the loading modal
+                    hideLoadingModal();
+                    console.error('Error loading document:', error);
+                });
+        }
+
+        // Guardar los cambios como una nueva versión
+        function saveChanges() {
+            fetch('/api/saveVersion', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ tempFileId: currentTempFileId, documentId, editor: 'username' })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert('Changes saved successfully!');
+                    currentTempFileId = null;
+                    loadVersionHistory();
+                });
+        }
+
+        // Descartar todos los archivos temporales
+        function discardAllTemporaryFiles() {
+            return fetch('/api/cleanupTemporaryFiles', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    currentTempFileId = null;
+                });
+        }
+
+        // Manejar el cierre o navegación fuera de la página
+        window.addEventListener('beforeunload', (event) => {
+            discardAllTemporaryFiles();
+        });
+
+        // Cargar el historial de versiones
+        function loadVersionHistory() {
+            fetch(`/api/versions/${documentId}`)
+                .then(response => response.json())
+                .then(versions => {
+                    const versionList = document.getElementById('versionList');
+                    versionList.innerHTML = '';
+                    versions.forEach(version => {
+                        const btn = document.createElement('button');
+                        btn.classList.add('btn', 'btn-outline-secondary', 'text-start', 'mb-2');
+                        btn.textContent = `Version ${version.id} - ${version.created_at}`;
+                        btn.onclick = () => handleDocumentChange(() => loadVersion(version.version_file_id));
+                        versionList.appendChild(btn);
+                    });
+                });
+        }
+
+        // Cargar una versión específica
+        function loadVersion(versionFileId) {
+            fetch(`/api/getFileUrl/${versionFileId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('document-viewer').src = data.url;
+                });
+        }
+    </script>
+</body>
+</html>
